@@ -18,6 +18,9 @@ module.exports = function (oAppData) {
 			}
 
 			return {
+				start: function (ModulesManager) {
+					require('modules/FilesWebclient/js/enums.js');
+				},
 				getScreens: function () {
 					var oScreens = {};
 					oScreens['file-view'] = function () {

@@ -20,7 +20,6 @@ module.exports = {
 		if (!_.isEmpty(oAppDataSection))
 		{
 			this.PublicFileData = Types.pObject(oAppDataSection.PublicFileData);
-			console.log('this.PublicFileData', this.PublicFileData);
 		}
 	}
 };

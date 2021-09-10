@@ -4,50 +4,65 @@ var
 	_ = require('underscore'),
 	$ = require('jquery'),
 	ko = require('knockout'),
-	moment = require('moment'),
-	videojs = require('video.js').default,
 	WebTorrent = require('modules/%ModuleName%/js/vendors/webtorrent.min.js'),
 
-	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
 	UrlUtils = require('%PathToCoreWebclientModule%/js/utils/Url.js'),
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
-	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
+	CJua = require('%PathToCoreWebclientModule%/js/CJua.js'),
+
 	Settings = require('modules/%ModuleName%/js/Settings.js'),
-	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 
 	CAbstractScreenView = require('%PathToCoreWebclientModule%/js/views/CAbstractScreenView.js')
 ;
-
-require('modules/OpenPgpFilesWebclient/styles/vendors/video-js.css');
 
 /**
 * @constructor
 */
 function CFileView()
 {
-	this.href = ko.observable('');
 	CAbstractScreenView.call(this, '%ModuleName%');
 
-	this.aSupportedVideoExt = ['mp4', 'url'];
-	this.aSupportedAudioExt = ['mp3'];
-
-	this.isDownloadingAndDecrypting = ko.observable(false);
 	this.browserTitle = ko.observable(TextUtils.i18n('%MODULENAME%/HEADING_BROWSER_TAB'));
-	this.hash = Settings.PublicFileData.Hash ? Settings.PublicFileData.Hash : '';
-	this.fileName = Settings.PublicFileData.Name ? Settings.PublicFileData.Name : '';
-	this.fileSize = Settings.PublicFileData.Size ? TextUtils.getFriendlySize(Settings.PublicFileData.Size) : '';
-	this.fileUrl = Settings.PublicFileData.Url ? Settings.PublicFileData.Url : '';
-	this.fileDownload = Settings.PublicFileData.Url ? Settings.PublicFileData.Url : '';
-	this.bSecuredLink = !!Settings.PublicFileData.IsSecuredLink;
-	this.isUrlFile = Settings.PublicFileData.IsUrlFile ? Settings.PublicFileData.IsUrlFile : false;
-	this.sParanoidKeyPublic = Settings.PublicFileData.ParanoidKeyPublic? Settings.PublicFileData.ParanoidKeyPublic : '';
-	this.sInitializationVector = Settings.PublicFileData.InitializationVector? Settings.PublicFileData.InitializationVector : '';
-	this.bShowPlayButton = ko.observable(false);
-	this.bShowVideoPlayer = ko.observable(false);
-	this.bShowAudioPlayer = ko.observable(false);
-	this.isMedia = ko.observable(false);
+
+	this.fileName = ko.observable('');
+	this.fileSize = ko.observable('');
+	this.file = ko.observable(null);
+
+	this.hasNoSource = ko.observable(false);
+
+	this.downloadPercent = ko.observable(0);
+	this.downloaded = ko.computed(function () {
+		return this.downloadPercent() === 100;
+	}, this);
+	this.downloadText = ko.computed(function () {
+		return TextUtils.i18n('%MODULENAME%/INFO_DOWNLOADED_PERCENT', {'PERCENT': this.downloadPercent()});
+	}, this);
+
+	this.peersCount = ko.observable(0);
+	this.peersText = ko.computed(function () {
+		return TextUtils.i18n('%MODULENAME%/INFO_SEEDING_TO_PEERS_PLURAL', {'COUNT': this.peersCount()}, null, this.peersCount());
+	}, this);
+	
+	this.isSaving = ko.observable(false);
+	this.saveToFilesCommand = Utils.createCommand(this, this.saveToFiles, function () {
+		return !!this.file() && !this.isSaving() && !this.uploaded();
+	});
+	
+	this.uploadPercent = ko.observable(0);
+	this.uploaded = ko.computed(function () {
+		return this.uploadPercent() === 100;
+	}, this);
+	this.uploadText = ko.computed(function () {
+		return TextUtils.i18n('%MODULENAME%/INFO_UPLOADED_PERCENT', {'PERCENT': this.uploadPercent()});
+	}, this);
+
+	this.peersCount = ko.observable(0);
+	this.peersText = ko.computed(function () {
+		return TextUtils.i18n('%MODULENAME%/INFO_SEEDING_TO_PEERS_PLURAL', {'COUNT': this.peersCount()}, null, this.peersCount());
+	}, this);
 }
 
 _.extendOwn(CFileView.prototype, CAbstractScreenView.prototype);
@@ -57,96 +72,101 @@ CFileView.prototype.ViewConstructorName = 'CFileView';
 
 CFileView.prototype.onShow = function ()
 {
-	var sUrl = UrlUtils.getAppPath() + Settings.PublicFileData.Actions.download.url;
-	var client = new WebTorrent();
-	client.add(sUrl, function (torrent) {
-		// Torrents can contain many files. Let's use the .mp4 file
-		var file = torrent.files.find(function (file) {
-			return file.name.endsWith('.mp4');
+	var
+		sUrl = UrlUtils.getAppPath() + Settings.PublicFileData.Actions.download.url,
+		oClient = new WebTorrent()
+	;
+
+	oClient.add(sUrl, function (oTorrent) {
+		var oFile = oTorrent.files.find(function (oFile) {
+			return oFile.name.endsWith('.mp4');
 		});
-		// Display the file by adding it to the DOM.
-		// Supports video, audio, image files, and more!
-		file.appendTo('#file-from-torrent');
+		console.log('oTorrent', oTorrent);
+		console.log('oFile', oFile);
+		this.fileName(oFile.name);
+		this.fileSize(TextUtils.getFriendlySize(oFile.length));
+		
+		setInterval(this.onProgress.bind(this, oTorrent), 500);
+		oTorrent.on('done', this.onDone.bind(this, oFile));
+
+		oFile.appendTo('#file-from-torrent');
 		$('#file-from-torrent video').addClass('vjs-tech');
+	}.bind(this));
+};
+
+CFileView.prototype.onProgress = function (oTorrent)
+{
+	this.hasNoSource(oTorrent.wires.length === 0);
+	this.downloadPercent(Math.floor(oTorrent.progress * 100));
+	this.peersCount(oTorrent.numPeers);
+};
+
+CFileView.prototype.onDone = function (oFile) {
+	oFile.getBlob(function (oError, oBlob) {
+		this.file(new File([oBlob], this.fileName()));
+	}.bind(this));
+};
+
+CFileView.prototype.saveToFiles = function () {
+	this.isSaving(true);
+	
+	var
+		sType = Settings.PublicFileData.Type,
+		bCanSaveToStorage = sType === Enums.FileStorageType.Personal || sType === Enums.FileStorageType.Corporate,
+		sPath = Settings.PublicFileData.Path
+	;
+
+	if (!bCanSaveToStorage)
+	{
+		sType = Enums.FileStorageType.Personal;
+		sPath = '';
+	}
+
+	this.oJua = new CJua({
+		'action': '?/Api/',
+		'name': 'jua-uploader',
+		'queueSize': 2,
+		'disableAjaxUpload': false,
+		'disableFolderDragAndDrop': true,
+		'disableDragAndDrop': true,
+		'hidden': _.extendOwn({
+			'Module': 'Files',
+			'Method': 'UploadFile',
+			'Parameters':  function (oFile) {
+				console.log('oFile', oFile);
+				return JSON.stringify({
+					'Type': sType,
+					'SubPath': '',
+					'Path': sPath,
+					'Overwrite': false
+				});
+			}
+		}, App.getCommonRequestParameters())
+	});
+
+	this.oJua
+		.on('onProgress', _.bind(this.onFileUploadProgress, this))
+		.on('onComplete', _.bind(this.onFileUploadComplete, this))
+	;
+
+	this.oJua.addNewFile({
+		File: this.file(),
+		FileName: this.fileName(),
+		Folder: '',
+		Size: this.fileSize(),
+		Type: this.file().type
 	});
 };
 
-CFileView.prototype.securedLinkDownload = function ()
+CFileView.prototype.onFileUploadProgress = function (sFileUid, iUploadedSize, iTotalSize)
 {
+	this.uploadPercent(Math.floor((iUploadedSize / iTotalSize) * 100));
 };
 
-CFileView.prototype.play = function ()
+CFileView.prototype.onFileUploadComplete = function (sFileUid, bResponseReceived, oResult)
 {
-};
-
-CFileView.prototype.isFileVideo = function (sFileName)
-{
-	var sExt = Utils.getFileExtension(sFileName)	;
-
-	return (-1 !== _.indexOf(this.aSupportedVideoExt, sExt.toLowerCase()));
-};
-
-CFileView.prototype.isFileAudio = function (sFileName)
-{
-	var sExt = Utils.getFileExtension(sFileName);
-
-	return (-1 !== _.indexOf(this.aSupportedAudioExt, sExt.toLowerCase()));
-};
-
-CFileView.prototype.showVideoStreamPlayer = function (sSrc)
-{
-	var sType = 'application/x-mpegURL';
-	this.oPlayer = videojs('video-player');
-	this.oPlayer.src({type: sType, src: sSrc});
-	this.bShowVideoPlayer(true);
-};
-
-CFileView.prototype.showVideoPlayer = function (sSrc)
-{
-	var sType = 'video/' + Utils.getFileExtension(this.fileName).toLowerCase();
-	this.oPlayer = videojs('video-player');
-	if (ModulesManager.isModuleAvailable('ActivityHistory'))
-	{
-		// play event is fired to many times
-		this.oPlayer.on('loadeddata', function () {
-			Ajax.send('ActivityHistory', 'CreateFromHash', {
-				'Hash': this.hash,
-				'EventName': 'play'
-			});
-		});
-		this.oPlayer.on('ended', function () {
-			Ajax.send('ActivityHistory', 'CreateFromHash', {
-				'Hash': this.hash,
-				'EventName': 'play-finish'
-			});
-		});
-	}
-	this.oPlayer.src({type: sType, src: sSrc});
-	this.bShowVideoPlayer(true);
-};
-
-CFileView.prototype.showAudioPlayer = function (sSrc)
-{
-	var sType = 'audio/' + Utils.getFileExtension(this.fileName).toLowerCase();
-	this.oPlayer = videojs('audio-player');
-	if (ModulesManager.isModuleAvailable('ActivityHistory'))
-	{
-		// play event is fired to many times
-		this.oPlayer.on('loadeddata', function () {
-			Ajax.send('ActivityHistory', 'CreateFromHash', {
-				'Hash': this.hash,
-				'EventName': 'play'
-			});
-		});
-		this.oPlayer.on('ended', function () {
-			Ajax.send('ActivityHistory', 'CreateFromHash', {
-				'Hash': this.hash,
-				'EventName': 'play-finish'
-			});
-		});
-	}
-	this.oPlayer.src({type: sType, src: sSrc});
-	this.bShowAudioPlayer(true);
+	console.log({sFileUid, bResponseReceived, oResult});
+	this.isSaving(false);
 };
 
 module.exports = CFileView;
