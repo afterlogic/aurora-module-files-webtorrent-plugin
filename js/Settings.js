@@ -8,6 +8,9 @@ var
 module.exports = {
 	PublicFileData: {},
 	
+	EnableUploadSizeLimit: false,
+	UploadSizeLimitMb: 0,
+	
 	/**
 	 * Initializes settings from AppData object sections.
 	 * 
@@ -21,5 +24,12 @@ module.exports = {
 		{
 			this.PublicFileData = Types.pObject(oAppDataSection.PublicFileData);
 		}
+		
+		var oAppDataFilesSection = oAppData['Files'];
+		if (!_.isEmpty(oAppDataFilesSection))
+		{
+			this.EnableUploadSizeLimit = Types.pBool(oAppDataFilesSection.EnableUploadSizeLimit, this.EnableUploadSizeLimit);
+			this.UploadSizeLimitMb = Types.pNonNegativeInt(oAppDataFilesSection.UploadSizeLimitMb, this.UploadSizeLimitMb);
+		}		
 	}
 };

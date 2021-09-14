@@ -29,13 +29,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
 		$sHash = (string) \Aurora\System\Router::getItemByIndex(1, '');
 		$aHash = \Aurora\System\Api::DecodeKeyValues($sHash);
+		$this->aPublicFileData = $aHash;
 		if (\is_array($aHash) && 0 < \count($aHash))
 		{
 			$oFileInfo = \Aurora\Modules\Files\Module::Decorator()->GetFileInfo($aHash['UserId'], $aHash['Type'], $aHash['Path'], $aHash['Id']);
+			$this->aPublicFileData['Size'] = $oFileInfo->Size;
+			$this->aPublicFileData['Actions'] = $oFileInfo->Actions;
 		}
-		$this->aPublicFileData = $aHash;
-		$this->aPublicFileData['Size'] = $oFileInfo->Size;
-		$this->aPublicFileData['Actions'] = $oFileInfo->Actions;
 		
 //		$sType = isset($aHash['Type']) ? $aHash['Type'] : '';
 //		$sPath = isset($aHash['Path']) ? $aHash['Path'] : '';

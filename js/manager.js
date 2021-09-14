@@ -2,6 +2,8 @@
 
 module.exports = function (oAppData) {
 	var
+		_ = require('underscore'),
+
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
 
 		Settings = require('modules/%ModuleName%/js/Settings.js')
@@ -36,6 +38,18 @@ module.exports = function (oAppData) {
 			return {
 				start: function (ModulesManager) {
 					ModulesManager.run('FilesWebclient', 'registerToolbarButtons', [require('modules/%ModuleName%/js/views/ButtonsView.js')]);
+					App.subscribeEvent('FilesWebclient::ConstructView::after', function (oParams) {
+						if (oParams.Name === 'CFilesView') {
+							var oView = oParams.View;
+							if (oView && _.isFunction(oView.registerCreateButtonsController))
+							{
+								setTimeout(function () {
+									var CDownloadFromMagnetButtonView = require('modules/%ModuleName%/js/views/CDownloadFromMagnetButtonView.js');
+									oView.registerCreateButtonsController(new CDownloadFromMagnetButtonView(oView.storageType, oView.currentPath));
+								});
+							}
+						}
+					});
 				}
 			};
 		}
