@@ -1,6 +1,5 @@
-.toolbar .item.webtorrent > .icon {
-	background-image: url("../../images/modules/FilesWebtorrentPlugin/web-torrent-button.png");
-	background-size: contain;
+.toolbar .item.webtorrent > .icon:before {
+	content: "\e924";
 }
 
 .video-container #file-from-torrent {
@@ -16,6 +15,10 @@
 		width: 100%;
 		height: 100%;
 	}
+	
+	img {
+		width: 640px;
+	}
 }
 
 .sharing_panel.webtorrent {
@@ -23,11 +26,125 @@
 
 	.fields {
 		margin: 0px auto;
-		width: 640px;
+		padding: 6px 0;
+	    width: 640px;
+		
+		.row {
+			margin: 0;
+			padding: 3px 0;
+		}
 
 		textarea {
 			height: 50px;
 			width: 640px;
+		}
+	}
+	
+	.buttons {
+		margin: 2px 0 14px 0;
+	}
+	
+	.progress_bar {
+		border: solid 1px white;
+		border-radius: 4px;
+		display: inline-block;
+		height: 4px;
+		margin-left: 10px;
+		width: 29px;
+		position: relative;
+
+		.progress_value {
+			background: white;
+			display: inline-block;
+			height: 4px;
+			top: 0;
+			position: absolute;
+			left: -1px;
+		}
+	}
+
+	.torrent_files_list {
+		/*border-top: 1px solid #473d48;*/
+		display: table;
+		width: 640px;
+		text-align: left;
+	
+		.torrent_file_item {
+			display: table-row;
+			
+			.torrent_file_name,
+			.torrent_file_size,
+			.torrent_file_buttons {
+				display: table-cell;
+				padding: 7px;
+				border-top: 1px solid #473d48;
+			}
+			
+			.torrent_file_buttons {
+				text-align: right;
+								
+				.link {
+					margin-left: 10px;
+				}
+				
+				.link.disable, .save_to_files_text.disable {
+					opacity: 0.6;
+
+					&:hover {
+						text-decoration: none;
+						cursor: default;
+						color: #BC4799;
+					}
+				}
+			}
+			
+			.save_to_files_button {
+				display: inline-block;
+				min-width: 80px;
+				height: 11px;
+				position: relative;
+				margin-left: 8px;
+				padding: 0 2px;
+				
+				.save_to_files_progress {
+					display: inline-block;
+					height: 21px;
+					position: absolute;
+					left: 0;
+					top: -4px;
+					border-radius: 4px;
+					width: 100%;
+					text-align: left;
+					overflow: hidden;
+
+					span {
+						display: inline-block;
+						width: 0%;
+						height: 100%;
+						background: #5a4c5c;
+					}
+				}
+				
+				.save_to_files_text {
+					color: #BC4799;
+					cursor: pointer;
+					text-decoration: none;
+					position: absolute;
+					left: 0;
+					top: 0;
+					margin: 0 auto;
+					right: 0;
+					text-align: center;
+					
+					&:hover {
+						text-decoration: underline;
+					}
+				}
+			}
+			
+			&:hover {
+				background: #473d48;
+			}
 		}
 	}
 }

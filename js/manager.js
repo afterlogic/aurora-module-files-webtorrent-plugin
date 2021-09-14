@@ -26,8 +26,8 @@ module.exports = function (oAppData) {
 				getScreens: function () {
 					var oScreens = {};
 					oScreens['file-view'] = function () {
-						var CFileView = require('modules/%ModuleName%/js/views/CFileView.js');
-						return new CFileView();
+						var CTorrentView = require('modules/%ModuleName%/js/views/CTorrentView.js');
+						return new CTorrentView();
 					};
 					return oScreens;
 				}

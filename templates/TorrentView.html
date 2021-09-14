@@ -1,0 +1,79 @@
+<div class="sharing_panel large webtorrent">
+	<div class="fields" data-bind="visible: bMagnetLink">
+		<div class="fieldset">
+			<div class="row">
+				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_MAGNET_LINK'}"></span>
+			</div>
+			<div class="row">
+				<span class="value">
+					<textarea data-bind="value: magnetLink, enable: !downloadStarted()" class="input"></textarea>
+				</span>
+			</div>
+		</div>
+	</div>
+	<span class="buttons buttons_magnet" data-bind="visible: bMagnetLink">
+		<span class="button button-fill" data-bind="command: downloadFromMagnetCommand">
+			<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DOWNLOAD_FROM_MAGNET'}"></span>
+		</span>
+		<span class="button button-fill" data-bind="command: saveTorrentToFilesCommand">
+			<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SAVE_TORRENT_TO_FILES'}, visible: !isTorrentSaving()"></span>
+			<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SAVE_TO_FILES_IN_PROGRESS'}, visible: isTorrentSaving()"></span>
+		</span>
+	</span>
+	<div class="fields" data-bind="visible: downloadStarted">
+		<div class="fieldset">
+			<div class="row" data-bind="visible: hasNoSource() && !downloaded()">
+				<span class="value" data-bind="i18n: {'key': '%MODULENAME%/INFO_CANNOT_FIND_SOURCE'}"></span>
+			</div>
+			<div class="row">
+				<span class="value">
+					<span class="progress_bar">
+						<span class="progress_value" data-bind="style: {'width': (downloadPercent() * 30) / 100 + 'px'}"></span>
+					</span>
+					<span data-bind="text: downloadText"></span>
+					&bull;
+					<span data-bind="text: peersText"></span>
+				</span>
+			</div>
+		</div>
+	</div>
+	<div data-bind="visible: downloadStarted">
+		<div class="torrent_files_list">
+			<!-- ko foreach: files -->
+			<div class="torrent_file_item">
+				<span class="torrent_file_name" data-bind="text: sName"></span>
+				<span class="torrent_file_size" data-bind="text: sFriendlySize"></span>
+				<span class="torrent_file_buttons">
+					<span class="link" data-bind="command: previewCommand, visible: bCanPreview, i18n: {'key': '%MODULENAME%/ACTION_PREVIEW_FILE'}"></span>
+<!--					<span class="progress_bar">
+						<span class="progress_value" data-bind="style: {'width': (uploadPercent() * 30) / 100 + 'px'}"></span>
+					</span>-->
+					<span class="save_to_files_button">
+						<span class="save_to_files_progress">
+							<span data-bind="style: {'width': uploadPercent() + '%'}"></span>
+						</span>
+						<span class="save_to_files_text" data-bind="command: saveToFilesCommand, text: saveToFilesButtonText"></span>
+					</span>
+				</span>
+			</div>
+			<!-- /ko -->
+		</div>
+	</div>
+	<div class="fields" data-bind="visible: downloadStarted()">
+		<div class="fieldset">
+			<div class="row">
+				<span class="value" data-bind="html: pathToSaveText"></span>
+			</div>
+		</div>
+	</div>
+	<span class="buttons" data-bind="visible: downloadStarted">
+		<span class="button button-fill" data-bind="command: saveAllToFilesCommand">
+			<span data-bind="text: saveToFilesButtonText, visible: !isSaving()"></span>
+			<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SAVE_TO_FILES_IN_PROGRESS'}, visible: isSaving()"></span>
+		</span>
+	</span>
+	<div class="fields" data-bind="visible: visiblePreview"></div>
+	<div class="video-container" data-bind="visible: visiblePreview">
+		<div id="file-from-torrent"></div>
+	</div>
+</div>
