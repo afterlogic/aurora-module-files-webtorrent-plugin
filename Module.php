@@ -20,7 +20,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
 	public function init()
 	{
+		$this->subscribeEvent('AddToContentSecurityPolicyDefault', array($this, 'onAddToContentSecurityPolicyDefault'), 150);
+
 		$this->AddEntry('webtorrent', 'EntryWebtorrent');
+	}
+
+	public function onAddToContentSecurityPolicyDefault($aArgs, &$aAddDefault)
+	{
+		$aAddDefault[] = '; connect-src *';
 	}
 
 	public function EntryWebtorrent()
