@@ -1,6 +1,7 @@
 'use strict';
 
 var
+	_ = require('underscore'),
 	$ = require('jquery'),
 	ko = require('knockout'),
 
@@ -21,7 +22,7 @@ function CFileView(oTorrentFile, oParent)
 	this.oParent = oParent;
 	this.sName = oTorrentFile.name;
 	this.sFriendlySize = TextUtils.getFriendlySize(oTorrentFile.length);
-	this.bCanPreview = oTorrentFile.name.endsWith('.mp4') || oTorrentFile.name.endsWith('.jpg');
+	this.bCanPreview = _.indexOf(['mp4', 'jpg', 'jpeg', 'png'], Utils.getFileExtension(oTorrentFile.name)) !== -1;
 	this.previewCommand = Utils.createCommand(this, this.preview);
 	
 	this.isSaving = ko.observable(false);
