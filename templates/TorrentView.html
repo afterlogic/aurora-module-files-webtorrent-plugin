@@ -29,7 +29,7 @@
 				<div class="row">
 					<span class="value">
 						<span class="progress_bar">
-							<span class="progress_value" data-bind="style: {'width': (downloadPercent() * 30) / 100 + 'px'}"></span>
+							<span class="progress_value" data-bind="style: {'width': downloadPercent() + '%'}"></span>
 						</span>
 						<span data-bind="text: downloadText"></span>
 						&bull;
@@ -47,7 +47,7 @@
 					<span class="torrent_file_buttons">
 						<span class="link" data-bind="command: previewCommand, visible: bCanPreview, i18n: {'key': '%MODULENAME%/ACTION_PREVIEW_FILE'}"></span>
 						<span class="progress_bar">
-							<span class="progress_value" data-bind="style: {'width': (downloadPercent() * 30) / 100 + 'px'}"></span>
+							<span class="progress_value" data-bind="style: {'width': downloadPercent() + '%'}"></span>
 						</span>
 						<span class="save_to_files_button">
 							<span class="save_to_files_progress">
