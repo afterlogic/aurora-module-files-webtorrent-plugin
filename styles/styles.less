@@ -22,6 +22,7 @@
 }
 
 .sharing_panel.webtorrent {
+	margin: 20px auto;
 	min-width: 640px;
 
 	.fields {
@@ -41,8 +42,12 @@
 	}
 	
 	.buttons {
-		margin: 2px 0 14px 0;
-	}
+		margin: 2px 0 0 0;
+
+		& ~ .fields {
+			margin-top: 14px;
+		}
+	}	
 	
 	.progress_bar {
 		border: solid 1px white;

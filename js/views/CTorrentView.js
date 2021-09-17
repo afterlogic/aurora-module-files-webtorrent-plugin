@@ -54,9 +54,10 @@ function CTorrentView()
 	
 	this.files = ko.observableArray([]);
 	this.pathToSaveText = ko.computed(function () {
+		var sSubPath = this.files().length === 1 ? '' : ('/' + this.torrentName());
 		return TextUtils.i18n('%MODULENAME%/INFO_PATH_TO_SAVE_PLURAL', {
 			'STORAGE': this.storage(),
-			'PATH': this.path() + '/' + this.torrentName()
+			'PATH': this.path() + sSubPath
 		}, null, this.files().length);
 	}, this);
 
@@ -84,14 +85,19 @@ function CTorrentView()
 
 	this.isSaving = ko.observable(false);
 	this.saveToFilesButtonText = ko.computed(function () {
+		if (this.uploaded())
+		{
+			return TextUtils.i18n('%MODULENAME%/ACTION_SAVED_TO_FILES');
+		}
+		if (this.isSaving())
+		{
+			return TextUtils.i18n('%MODULENAME%/ACTION_SAVE_TO_FILES_IN_PROGRESS');
+		}
 		if (this.files().length > 1)
 		{
 			return TextUtils.i18n('%MODULENAME%/ACTION_SAVE_ALL_TO_FILES');
 		}
-		else
-		{
-			return TextUtils.i18n('%MODULENAME%/ACTION_SAVE_TO_FILES');
-		}
+		return TextUtils.i18n('%MODULENAME%/ACTION_SAVE_TO_FILES');
 	}, this);
 	this.saveAllToFilesCommand = Utils.createCommand(this, this.saveAllToFiles, function () {
 		return this.downloaded() && !this.isSaving() && !this.uploaded();
@@ -203,7 +209,7 @@ CTorrentView.prototype.download = function (sUrl)
 
 	oClient.add(sUrl, function (oTorrent) {
 		this.downloadStarted(true);
-		console.log('oTorrent', oTorrent);
+
 		this.files(_.map(oTorrent.files, function (oFile) {
 			return new CFileView(oFile, this);
 		}.bind(this)));
@@ -225,6 +231,9 @@ CTorrentView.prototype.onProgress = function (oTorrent)
 	this.hasNoSource(oTorrent.wires.length === 0);
 	this.downloadPercent(Math.floor(oTorrent.progress * 100));
 	this.peersCount(oTorrent.numPeers);
+	_.each(this.files(), function (oFile) {
+		oFile.downloadPercent(Math.floor(oFile.oTorrentFile.progress * 100));
+	});
 };
 
 CTorrentView.prototype.saveTorrentToFiles = function () {
@@ -233,7 +242,7 @@ CTorrentView.prototype.saveTorrentToFiles = function () {
 		if (this.isValidFileSize(oFile))
 		{
 			this.isTorrentSaving(true);
-			this.uploadFile(oFile, this.onTorrentUploadProgress.bind(this),
+			this.uploadFile(oFile, '', this.onTorrentUploadProgress.bind(this),
 							this.onTorrentUploadComplete.bind(this));
 		}
 	}
@@ -265,6 +274,17 @@ CTorrentView.prototype.saveAllToFiles = function () {
 			else
 			{
 				this.isSaving(false);
+				if (this.uploaded())
+				{
+					if (this.files().length === 1)
+					{
+						Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_FILE_UPLOAD'));
+					}
+					else
+					{
+						Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_FILES_UPLOAD'));
+					}
+				}
 			}
 		}.bind(this)
 	;
@@ -283,7 +303,7 @@ CTorrentView.prototype.uploadFileItem = function (iIndex, fCallback) {
 				fCallback();
 			}
 		}, this);
-		oFile.saveToFiles();
+		oFile.saveToFiles(true);
 	}
 	else
 	{
@@ -308,7 +328,7 @@ CTorrentView.prototype.isValidFileSize = function (oFile) {
 	return true;
 };
 
-CTorrentView.prototype.uploadFile = function (oFile, onFileUploadProgress, onFileUploadComplete) {
+CTorrentView.prototype.uploadFile = function (oFile, sSubPath, onFileUploadProgress, onFileUploadComplete) {
 	var
 		sFileName = oFile.name,
 		sFileSize = oFile.size
@@ -327,7 +347,7 @@ CTorrentView.prototype.uploadFile = function (oFile, onFileUploadProgress, onFil
 			'Parameters':  function (oFile) {
 				return JSON.stringify({
 					'Type': this.storage(),
-					'SubPath': this.torrentName(),
+					'SubPath': sSubPath,
 					'Path': this.path(),
 					'Overwrite': false
 				});

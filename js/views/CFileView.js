@@ -25,13 +25,19 @@ function CFileView(oTorrentFile, oParent)
 	this.bCanPreview = _.indexOf(['mp4', 'jpg', 'jpeg', 'png'], Utils.getFileExtension(oTorrentFile.name)) !== -1;
 	this.previewCommand = Utils.createCommand(this, this.preview);
 	
+	this.downloadPercent = ko.observable(0);
+	this.downloaded = ko.computed(function () {
+		return this.downloadPercent() === 100;
+	}, this);
+
+	this.bSuppressSuccessOutput = false;
 	this.isSaving = ko.observable(false);
 	this.uploadPercent = ko.observable(0);
 	this.uploaded = ko.computed(function () {
 		return this.uploadPercent() === 100;
 	}, this);
 	this.allowUpload = ko.computed(function () {
-		return oParent.downloaded() && !this.isSaving() && !this.uploaded();
+		return this.downloaded() && !this.isSaving() && !this.uploaded();
 	}, this);
 	this.saveToFilesButtonText = ko.computed(function () {
 		if (this.uploaded())
@@ -72,8 +78,9 @@ CFileView.prototype.preview = function ()
 	this.oParent.visiblePreview(true);
 };
 
-CFileView.prototype.saveToFiles = function ()
+CFileView.prototype.saveToFiles = function (mSuppressSuccessOutput)
 {
+	this.bSuppressSuccessOutput = mSuppressSuccessOutput === true; // it can be object
 	this.isSaving(true);
 	this.uploadPercent(10);
 	this.oTorrentFile.getBlob(function (oError, oBlob) {
@@ -82,7 +89,8 @@ CFileView.prototype.saveToFiles = function ()
 			var oFile = new File([oBlob], this.sName);
 			if (this.oParent.isValidFileSize(oFile))
 			{
-				this.oParent.uploadFile(oFile, this.onFileUploadProgress.bind(this),
+				var sSubPath = this.oParent.files().length === 1 ? '' : this.oParent.torrentName();
+				this.oParent.uploadFile(oFile, sSubPath, this.onFileUploadProgress.bind(this),
 										this.onFileUploadComplete.bind(this));
 			}
 			else
@@ -117,7 +125,7 @@ CFileView.prototype.onFileUploadComplete = function (sFileUid, bResponseReceived
 	{
 		this.uploadPercent(0);
 	}
-	else
+	else if (!this.bSuppressSuccessOutput)
 	{
 		Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_FILE_UPLOAD'));
 	}
